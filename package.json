@@ -1,7 +1,7 @@
 {
-  "name": "midata-cartographie",
+  "name": "mapper_portfolio",
   "private": true,
-  "homepage": "https://christgoue.github.io/MiData-cartographie",
+  "homepage": "https://christgoue.github.io/Mapper_portfolio",
   "version": "0.0.0",
   "type": "module",
   "scripts": {

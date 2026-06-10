@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 // https://vite.dev/config/
 export default defineConfig({
   // base path pour GitHub Pages (nom du repo)
-  base: "/MiData-cartographie/",
+  base: "/Mapper_portfolio/",
   plugins: [react(), tailwindcss(), viteSingleFile()],
   resolve: {
     alias: {
