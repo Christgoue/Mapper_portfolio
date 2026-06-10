@@ -1,3 +1,4 @@
+import { MY_PROJECTS } from './data/projects';
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Polygon, Popup, useMapEvents } from 'react-leaflet';
 import {
@@ -57,13 +58,13 @@ interface Project {
 }
 
 const THEMES = [
-  "Eau & Assainissement",
-  "Adaptation Climatique",
+  "Eau, Hygiène  & Assainissement",
+  "Adaptation Climatique & Environnement",
   "Santé Publique",
   "Nutrition & Sécurité Alimentaire",
   "Education",
-  "Protection",
-  "Genre",
+  "Protection & VBG",
+  "Genre & Inclusion Sociale",
   "MEAL / Suivi-Évaluation",
   "Autre"
 ];
@@ -78,7 +79,7 @@ const DEFAULT_PROJECTS: Project[] = [
     zone: "Dakar, Thiès, Fatick",
     year: 2024,
     date: "2024-06-15",
-    theme: "Eau & Assainissement",
+    theme: "Eau, Hygiène  & Assainissement",
     color: "#0ea5e9",
     image: "",
     description: "Taux d'accès à l'eau potable par département et localisation des points d'eau.",
@@ -115,7 +116,7 @@ const DEFAULT_PROJECTS: Project[] = [
     zone: "Centre-Nord, Sahel",
     year: 2023,
     date: "2023-11-20",
-    theme: "Adaptation Climatique",
+    theme: "Adaptation Climatique & Environnement",
     color: "#10b981",
     image: "",
     description: "Cartographie des zones à risque de sécheresse et inondations.",
@@ -754,819 +755,813 @@ export default function App() {
     try { return localStorage.getItem('midata-theme') !== 'light'; } catch { return true; }
   });
 
-  useEffect(() => {
-    try { localStorage.setItem('midata-projects', JSON.stringify(projects)); } catch { }
-  }, [projects]);
+  //useEffect(() => {
+  try { localStorage.setItem('midata-projects', JSON.stringify(projects)); } catch { }
+}, [projects]);
 
-  useEffect(() => {
-    try { localStorage.setItem('midata-edit-mode', editMode ? '1' : '0'); } catch { }
-  }, [editMode]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('midata-theme', isDark ? 'dark' : 'light');
-      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    } catch { }
-  }, [isDark]);
+useEffect(() => {
+  try { localStorage.setItem('midata-edit-mode', editMode ? '1' : '0'); } catch { }
+}, [editMode]);
 
-  useEffect(() => {
-    if (!projects.find(p => p.id === selectedProjectId) && projects.length) {
-      setSelectedProjectId(projects[0].id);
-    }
-  }, [projects, selectedProjectId]);
+useEffect(() => {
+  try {
+    localStorage.setItem('midata-theme', isDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  } catch { }
+}, [isDark]);
 
-  const selectedProject = projects.find(p => p.id === selectedProjectId) || projects[0];
+useEffect(() => {
+  if (!projects.find(p => p.id === selectedProjectId) && projects.length) {
+    setSelectedProjectId(projects[0].id);
+  }
+}, [projects, selectedProjectId]);
 
-  const allThemes = ["Tous", ...Array.from(new Set(projects.map(p => p.theme)))];
-  const filteredProjects = projects.filter(project => {
-    const matchesTheme = activeTheme === "Tous" || project.theme === activeTheme;
-    const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesTheme && matchesSearch;
-  });
+const selectedProject = projects.find(p => p.id === selectedProjectId) || projects[0];
 
-  const toggleLayer = (layer: string) => {
-    if (activeLayers.includes(layer)) {
-      setActiveLayers(activeLayers.filter(l => l !== layer));
-    } else {
-      setActiveLayers([...activeLayers, layer]);
-    }
-  };
+const allThemes = ["Tous", ...Array.from(new Set(projects.map(p => p.theme)))];
+const filteredProjects = projects.filter(project => {
+  const matchesTheme = activeTheme === "Tous" || project.theme === activeTheme;
+  const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    project.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    project.description.toLowerCase().includes(searchTerm.toLowerCase());
+  return matchesTheme && matchesSearch;
+});
 
-  const getMarkerColor = (type: 'good' | 'bad' | 'neutral') => {
-    if (type === 'good') return '#22c55e';
-    if (type === 'bad') return '#ef4444';
-    return '#eab308';
-  };
+const toggleLayer = (layer: string) => {
+  if (activeLayers.includes(layer)) {
+    setActiveLayers(activeLayers.filter(l => l !== layer));
+  } else {
+    setActiveLayers([...activeLayers, layer]);
+  }
+};
 
-  const handleCreate = () => {
-    if (!editMode) return;
-    const newId = Math.max(0, ...projects.map(p => p.id)) + 1;
-    setEditing(emptyProject(newId));
-  };
+const getMarkerColor = (type: 'good' | 'bad' | 'neutral') => {
+  if (type === 'good') return '#22c55e';
+  if (type === 'bad') return '#ef4444';
+  return '#eab308';
+};
 
-  const handleEdit = (project: Project) => {
-    if (!editMode) return;
-    setEditing({ ...project });
-  };
+const handleCreate = () => {
+  if (!editMode) return;
+  const newId = Math.max(0, ...projects.map(p => p.id)) + 1;
+  setEditing(emptyProject(newId));
+};
 
-  const handleDelete = (id: number) => {
-    if (!editMode) return;
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cette carte ?")) return;
-    setProjects(projects.filter(p => p.id !== id));
-    if (galleryDetailId === id) setGalleryDetailId(null);
-  };
+const handleEdit = (project: Project) => {
+  if (!editMode) return;
+  setEditing({ ...project });
+};
 
-  const handleSave = (draft: Project) => {
-    const exists = projects.some(p => p.id === draft.id);
-    if (exists) {
-      setProjects(projects.map(p => (p.id === draft.id ? draft : p)));
-    } else {
-      setProjects([draft, ...projects]);
-      setSelectedProjectId(draft.id);
-    }
-    setEditing(null);
-  };
+const handleDelete = (id: number) => {
+  if (!editMode) return;
+  if (!confirm("Êtes-vous sûr de vouloir supprimer cette carte ?")) return;
+  setProjects(projects.filter(p => p.id !== id));
+  if (galleryDetailId === id) setGalleryDetailId(null);
+};
 
-  // Secret code activator
-  const handleSecretTap = () => {
-    if (editMode) {
-      setEditMode(false);
-      return;
-    }
-    const code = prompt("🔒 Mode édition — Entrez le code d'accès :");
-    if (code && code.toLowerCase() === "jaukho") {
-      setEditMode(true);
-      alert("✅ Mode édition activé. Vous pouvez maintenant modifier les cartes.");
-    } else if (code !== null) {
-      alert("❌ Code incorrect.");
-    }
-  };
+const handleSave = (draft: Project) => {
+  const exists = projects.some(p => p.id === draft.id);
+  if (exists) {
+    setProjects(projects.map(p => (p.id === draft.id ? draft : p)));
+  } else {
+    setProjects([draft, ...projects]);
+    setSelectedProjectId(draft.id);
+  }
+  setEditing(null);
+};
 
-  return (
-    <div className="flex h-screen flex-col overflow-hidden theme-bg-base theme-text">
-      {/* ===== TOP NAVIGATION ===== */}
-      <header className="flex h-16 items-center justify-between border-b theme-border theme-bg-base px-6">
-        <div className="flex items-center gap-x-4">
-          <div className="flex items-center gap-x-3">
-            <div className="rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 shadow-lg shadow-emerald-500/30">
-              <Layers className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <div className="text-2xl font-semibold tracking-tight theme-text leading-none">MiData</div>
-              <div className="text-[11px] theme-accent uppercase tracking-[2px] font-semibold mt-0.5">Cartographie / SIG</div>
-            </div>
-          </div>
+// Secret code activator
+const handleSecretTap = () => {
+  if (editMode) {
+    setEditMode(false);
+    return;
+  }
+  const code = prompt("🔒 Mode édition — Entrez le code d'accès :");
+  if (code && code.toLowerCase() === "jaukho") {
+    setEditMode(true);
+    alert("✅ Mode édition activé. Vous pouvez maintenant modifier les cartes.");
+  } else if (code !== null) {
+    alert("❌ Code incorrect.");
+  }
+};
 
-          <div className="ml-10 flex items-center gap-x-2">
-            <button
-              onClick={() => setShowGallery(false)}
-              className={`flex items-center gap-x-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all ${!showGallery ? 'bg-white text-slate-900 shadow-lg' : 'theme-text-secondary hover:theme-bg-elevated hover:theme-text'}`}
-            >
-              <MapPin className="h-4 w-4" />
-              Visualiseur
-            </button>
-            <button
-              onClick={() => { setShowGallery(true); setGalleryDetailId(null); }}
-              className={`flex items-center gap-x-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all ${showGallery ? 'bg-white text-slate-900 shadow-lg' : 'theme-text-secondary hover:theme-bg-elevated hover:theme-text'}`}
-            >
-              <BarChart3 className="h-4 w-4" />
-              Galerie
-            </button>
-          </div>
-        </div>
-
+return (
+  <div className="flex h-screen flex-col overflow-hidden theme-bg-base theme-text">
+    {/* ===== TOP NAVIGATION ===== */}
+    <header className="flex h-16 items-center justify-between border-b theme-border theme-bg-base px-6">
+      <div className="flex items-center gap-x-4">
         <div className="flex items-center gap-x-3">
-          <div className={`flex items-center gap-x-2 rounded-full theme-bg-elevated px-3 py-1.5 text-xs border theme-border`}>
-            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
-            <span className="theme-text-secondary">{projects.length} cartes</span>
+          <div className="rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 shadow-lg shadow-emerald-500/30">
+            <Layers className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <div className="text-2xl font-semibold tracking-tight theme-text leading-none">MiData</div>
+            <div className="text-[11px] theme-accent uppercase tracking-[2px] font-semibold mt-0.5">Cartographie / SIG</div>
+          </div>
+        </div>
+
+        <div className="ml-10 flex items-center gap-x-2">
+          <button
+            onClick={() => setShowGallery(false)}
+            className={`flex items-center gap-x-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all ${!showGallery ? 'bg-white text-slate-900 shadow-lg' : 'theme-text-secondary hover:theme-bg-elevated hover:theme-text'}`}
+          >
+            <MapPin className="h-4 w-4" />
+            Visualiseur
+          </button>
+          <button
+            onClick={() => { setShowGallery(true); setGalleryDetailId(null); }}
+            className={`flex items-center gap-x-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all ${showGallery ? 'bg-white text-slate-900 shadow-lg' : 'theme-text-secondary hover:theme-bg-elevated hover:theme-text'}`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            Galerie
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-x-3">
+        <div className={`flex items-center gap-x-2 rounded-full theme-bg-elevated px-3 py-1.5 text-xs border theme-border`}>
+          <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
+          <span className="theme-text-secondary">{projects.length} cartes</span>
+        </div>
+
+        {/* Theme toggle */}
+        <button
+          onClick={() => setIsDark(!isDark)}
+          title={isDark ? "Passer en mode jour" : "Passer en mode nuit"}
+          className="h-10 w-10 flex items-center justify-center rounded-2xl theme-bg-elevated border theme-border hover:theme-border-hover transition-colors theme-text"
+        >
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+
+        {/* New project (edit mode only) */}
+        {editMode && (
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-x-2 bg-emerald-500 hover:bg-emerald-400 text-white px-5 py-2.5 rounded-2xl text-sm font-semibold shadow-lg shadow-emerald-500/30 transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            Nouvelle carte
+          </button>
+        )}
+
+        <div className="flex items-center gap-x-3 theme-bg-elevated rounded-2xl pl-2 pr-5 py-1.5 border theme-border">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center text-sm font-bold text-white">CG</div>
+          <div>
+            <div className="text-sm theme-text font-medium leading-tight">C. GOUESSE</div>
+            <div className="text-[10px] theme-accent uppercase tracking-wider font-semibold -mt-0.5">Expert SIG / MEAL</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div className="flex flex-1 overflow-hidden">
+      {/* ===== LEFT SIDEBAR ===== */}
+      <div className="w-80 border-r theme-border theme-bg-base flex flex-col">
+        <div className="p-6 border-b theme-border">
+          <div className="flex items-center justify-between mb-5">
+            <div className="uppercase text-[11px] tracking-[1.5px] font-mono theme-text-secondary font-semibold">Exploration</div>
+            <button
+              onClick={() => { setActiveTheme("Tous"); setSearchTerm(""); }}
+              className="text-xs theme-text-secondary hover:theme-text"
+            >
+              Réinitialiser
+            </button>
           </div>
 
-          {/* Theme toggle */}
-          <button
-            onClick={() => setIsDark(!isDark)}
-            title={isDark ? "Passer en mode jour" : "Passer en mode nuit"}
-            className="h-10 w-10 flex items-center justify-center rounded-2xl theme-bg-elevated border theme-border hover:theme-border-hover transition-colors theme-text"
-          >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
+          <div className="relative mb-5">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Rechercher une carte, un pays..."
+              className="w-full theme-bg-elevated border theme-border focus:border-emerald-500 rounded-2xl py-3 pl-11 text-sm placeholder:theme-text-muted focus:outline-none theme-text"
+            />
+            <MapPin className="absolute left-4 top-3.5 h-4 w-4 theme-text-muted" />
+          </div>
 
-          {/* New project (edit mode only) */}
-          {editMode && (
-            <button
-              onClick={handleCreate}
-              className="flex items-center gap-x-2 bg-emerald-500 hover:bg-emerald-400 text-white px-5 py-2.5 rounded-2xl text-sm font-semibold shadow-lg shadow-emerald-500/30 transition-all"
-            >
-              <Plus className="h-4 w-4" />
-              Nouvelle carte
-            </button>
-          )}
-
-          <div className="flex items-center gap-x-3 theme-bg-elevated rounded-2xl pl-2 pr-5 py-1.5 border theme-border">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center text-sm font-bold text-white">CG</div>
-            <div>
-              <div className="text-sm theme-text font-medium leading-tight">C. GOUESSE</div>
-              <div className="text-[10px] theme-accent uppercase tracking-wider font-semibold -mt-0.5">Expert SIG / MEAL</div>
+          <div>
+            <div className="text-xs theme-text-secondary mb-3 font-semibold uppercase tracking-wider">Thématiques</div>
+            <div className="flex flex-wrap gap-2">
+              {allThemes.map((theme) => (
+                <button
+                  key={theme}
+                  onClick={() => setActiveTheme(theme)}
+                  className={`text-xs px-4 py-1.5 rounded-2xl transition-all border font-medium ${activeTheme === theme
+                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/30'
+                    : 'theme-bg-elevated theme-border hover:theme-border-hover theme-text-secondary'
+                    }`}
+                >
+                  {theme}
+                </button>
+              ))}
             </div>
           </div>
         </div>
-      </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* ===== LEFT SIDEBAR ===== */}
-        <div className="w-80 border-r theme-border theme-bg-base flex flex-col">
-          <div className="p-6 border-b theme-border">
-            <div className="flex items-center justify-between mb-5">
-              <div className="uppercase text-[11px] tracking-[1.5px] font-mono theme-text-secondary font-semibold">Exploration</div>
+        <div className="flex-1 overflow-auto p-4 space-y-3 custom-scroll">
+          <div className="flex items-center justify-between px-2 mb-2">
+            <div className="uppercase text-[10px] tracking-[2px] theme-text-muted font-semibold">
+              Mes cartes ({filteredProjects.length})
+            </div>
+            {editMode && (
               <button
-                onClick={() => { setActiveTheme("Tous"); setSearchTerm(""); }}
-                className="text-xs theme-text-secondary hover:theme-text"
+                onClick={handleCreate}
+                className="h-7 w-7 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors"
               >
-                Réinitialiser
+                <Plus className="h-4 w-4" />
               </button>
-            </div>
+            )}
+          </div>
 
-            <div className="relative mb-5">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Rechercher une carte, un pays..."
-                className="w-full theme-bg-elevated border theme-border focus:border-emerald-500 rounded-2xl py-3 pl-11 text-sm placeholder:theme-text-muted focus:outline-none theme-text"
-              />
-              <MapPin className="absolute left-4 top-3.5 h-4 w-4 theme-text-muted" />
-            </div>
+          {filteredProjects.map((project) => (
+            <div
+              key={project.id}
+              className={`group p-5 rounded-2xl cursor-pointer transition-all border ${selectedProject?.id === project.id && !showGallery
+                ? 'theme-bg-elevated border-emerald-600 shadow-inner'
+                : 'theme-bg-base theme-border hover:theme-border-hover hover:theme-bg-elevated/50'
+                }`}
+              onClick={() => {
+                setSelectedProjectId(project.id);
+                setShowGallery(false);
+              }}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium theme-text text-sm leading-tight mb-1.5 group-hover:theme-accent transition-colors truncate">
+                    {project.title}
+                  </div>
+                  <div className="text-xs theme-text-muted flex items-center gap-x-2">
+                    <Globe className="h-3 w-3" />
+                    <span>{project.country}</span>
+                    <span className="opacity-50">•</span>
+                    <span>{project.year}</span>
+                  </div>
+                </div>
+                <div
+                  className="h-6 w-6 flex-shrink-0 rounded-xl ml-3"
+                  style={{ backgroundColor: project.color }}
+                />
+              </div>
 
-            <div>
-              <div className="text-xs theme-text-secondary mb-3 font-semibold uppercase tracking-wider">Thématiques</div>
-              <div className="flex flex-wrap gap-2">
-                {allThemes.map((theme) => (
+              <div className="mt-3 text-[11px] theme-text-muted line-clamp-2 leading-relaxed">
+                {project.description || 'Aucune description'}
+              </div>
+
+              {editMode && (
+                <div className="mt-4 flex items-center justify-end gap-x-1">
                   <button
-                    key={theme}
-                    onClick={() => setActiveTheme(theme)}
-                    className={`text-xs px-4 py-1.5 rounded-2xl transition-all border font-medium ${activeTheme === theme
-                      ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/30'
-                      : 'theme-bg-elevated theme-border hover:theme-border-hover theme-text-secondary'
-                      }`}
+                    onClick={(e) => { e.stopPropagation(); handleEdit(project); }}
+                    className="h-7 w-7 flex items-center justify-center rounded-xl hover:theme-bg-base theme-text-muted hover:theme-text"
+                    title="Modifier"
                   >
-                    {theme}
+                    <Edit3 className="h-3.5 w-3.5" />
                   </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }}
+                    className="h-7 w-7 flex items-center justify-center rounded-xl hover:bg-red-500/20 theme-text-muted hover:text-red-400"
+                    title="Supprimer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {filteredProjects.length === 0 && (
+            <div className="p-8 text-center theme-text-muted text-sm border border-dashed theme-border rounded-2xl theme-bg-elevated/50">
+              Aucune carte trouvée.
+            </div>
+          )}
+        </div>
+
+        {/* ===== CONTACT SECTION ===== */}
+        <div className="p-4 border-t theme-border theme-bg-elevated/30">
+          <div className="uppercase text-[10px] tracking-[2px] theme-text-muted font-semibold mb-3 px-1">Me contacter</div>
+          <div className="space-y-2">
+            <a
+              href={`mailto:${CONTACT.email}`}
+              className="flex items-center gap-x-3 p-2.5 rounded-2xl hover:theme-bg-elevated theme-text-secondary hover:theme-text transition-colors group"
+              title={CONTACT.email}
+            >
+              <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors flex-shrink-0">
+                <Mail className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] theme-text-muted uppercase tracking-wider">Email</div>
+                <div className="text-xs theme-text truncate">{CONTACT.email}</div>
+              </div>
+            </a>
+            <a
+              href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}
+              className="flex items-center gap-x-3 p-2.5 rounded-2xl hover:theme-bg-elevated theme-text-secondary hover:theme-text transition-colors group"
+              title={CONTACT.phone}
+            >
+              <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-sky-500/10 text-sky-400 group-hover:bg-sky-500 group-hover:text-white transition-colors flex-shrink-0">
+                <Phone className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] theme-text-muted uppercase tracking-wider">Téléphone</div>
+                <div className="text-xs theme-text truncate">{CONTACT.phone}</div>
+              </div>
+            </a>
+            <a
+              href={CONTACT.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-x-3 p-2.5 rounded-2xl hover:theme-bg-elevated theme-text-secondary hover:theme-text transition-colors group"
+              title="LinkedIn"
+            >
+              <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors flex-shrink-0">
+                <LinkedinIcon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] theme-text-muted uppercase tracking-wider">LinkedIn</div>
+                <div className="text-xs theme-text truncate">C. GOUESSE</div>
+              </div>
+            </a>
+            <a
+              href={CONTACT.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-x-3 p-2.5 rounded-2xl hover:theme-bg-elevated theme-text-secondary hover:theme-text transition-colors group"
+              title="GitHub"
+            >
+              <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-slate-500/10 theme-text-muted group-hover:bg-slate-500 group-hover:text-white transition-colors flex-shrink-0">
+                <GithubIcon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] theme-text-muted uppercase tracking-wider">GitHub</div>
+                <div className="text-xs theme-text truncate">@christgoue</div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== MAIN AREA ===== */}
+      <div className="flex-1 flex flex-col relative theme-bg-base">
+        {!showGallery && selectedProject ? (
+          /* ===== VISUALIZER VIEW (unchanged) ===== */
+          <>
+            {/* Map Info Card */}
+            <div className="absolute top-5 left-5 z-20 theme-bg-elevated/95 backdrop-blur-lg border theme-border rounded-3xl px-6 py-4 shadow-2xl flex items-center gap-x-5 max-w-[calc(100%-280px)]">
+              <div>
+                <div className="flex items-center gap-x-3">
+                  <div
+                    className="h-10 w-10 rounded-2xl flex items-center justify-center"
+                    style={{ backgroundColor: selectedProject.color + '33', color: selectedProject.color }}
+                  >
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-lg leading-none theme-text">{selectedProject.title}</div>
+                    <div className="text-xs theme-text-muted mt-1.5">
+                      {selectedProject.country}
+                      {selectedProject.zone && ` — ${selectedProject.zone}`}
+                      {' • '}{selectedProject.year}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className={`h-10 w-px ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
+              <div className="text-xs leading-snug max-w-[240px] theme-text-secondary">
+                {selectedProject.description}
+              </div>
+              {editMode && (
+                <>
+                  <div className={`h-10 w-px ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
+                  <button
+                    onClick={() => handleEdit(selectedProject)}
+                    className="flex items-center gap-x-2 px-4 py-2 text-xs hover:opacity-80 theme-text rounded-2xl border theme-border transition-all"
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                    MODIFIER
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Layer Controls */}
+            <div className="absolute top-5 right-5 z-20 theme-bg-elevated/95 backdrop-blur-lg border theme-border rounded-3xl p-2 shadow-2xl w-56">
+              <div className="text-[10px] font-mono tracking-[2px] theme-text-muted px-4 pt-2 pb-3 uppercase">Couches</div>
+              <div className="space-y-1 pb-2">
+                <button
+                  onClick={() => toggleLayer('markers')}
+                  className={`w-full flex items-center gap-x-3 px-4 py-2.5 hover:theme-bg-base rounded-2xl text-sm transition-all ${activeLayers.includes('markers') ? 'theme-bg-base theme-text' : 'theme-text-muted'}`}
+                >
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedProject.color }}></div>
+                  <span>Points de données</span>
+                  <span className="ml-auto text-xs theme-text-muted">{selectedProject.markers.length}</span>
+                </button>
+                <button
+                  onClick={() => toggleLayer('polygons')}
+                  className={`w-full flex items-center gap-x-3 px-4 py-2.5 hover:theme-bg-base rounded-2xl text-sm transition-all ${activeLayers.includes('polygons') ? 'theme-bg-base theme-text' : 'theme-text-muted'}`}
+                >
+                  <div className="w-3 h-3 bg-emerald-400/70 rounded"></div>
+                  <span>Zones</span>
+                  <span className="ml-auto text-xs theme-text-muted">{selectedProject.polygons.length}</span>
+                </button>
+                <button
+                  onClick={() => toggleLayer('osm')}
+                  className={`w-full flex items-center gap-x-3 px-4 py-2.5 hover:theme-bg-base rounded-2xl text-sm transition-all ${activeLayers.includes('osm') ? 'theme-bg-base theme-text' : 'theme-text-muted'}`}
+                >
+                  <div className="text-amber-400 text-sm">🛰️</div>
+                  <span>Fond cartographique</span>
+                </button>
+              </div>
+              <div className={`border-t theme-border pt-3 pb-2 px-4`}>
+                <div className="text-[10px] font-mono tracking-[2px] theme-text-muted mb-3 uppercase">Légende</div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center gap-x-2.5 theme-text-secondary">
+                    <div className="w-3 h-3 rounded-full bg-green-500 border-2 theme-border"></div>
+                    <span>Positif / Fonctionnel</span>
+                  </div>
+                  <div className="flex items-center gap-x-2.5 theme-text-secondary">
+                    <div className="w-3 h-3 rounded-full bg-yellow-500 border-2 theme-border"></div>
+                    <span>Neutre / À surveiller</span>
+                  </div>
+                  <div className="flex items-center gap-x-2.5 theme-text-secondary">
+                    <div className="w-3 h-3 rounded-full bg-red-500 border-2 theme-border"></div>
+                    <span>Critique / À traiter</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* THE MAP */}
+            <div className="flex-1 relative">
+              {selectedProject.image ? (
+                <div className="h-full w-full flex items-center justify-center theme-bg-base p-8 relative">
+                  <img
+                    src={selectedProject.image}
+                    alt={selectedProject.title}
+                    className="max-h-full max-w-full object-contain rounded-2xl shadow-2xl"
+                  />
+                </div>
+              ) : (
+                <MapContainer
+                  center={selectedProject.center}
+                  zoom={selectedProject.zoom}
+                  className="h-full w-full"
+                  zoomControl={true} // On réactive le zoom pour l'utilisateur
+                  attributionControl={false}
+                >
+                  <MapController project={selectedProject} />
+
+                  {/* Fond de carte : On peut forcer un fond propre ici */}
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; OpenStreetMap'
+                  />
+
+                  {/* Affichage des Polygones (Zones ) */}
+                  {selectedProject.polygons.map((poly, index) => (
+                    <Polygon
+                      key={index}
+                      positions={poly.positions}
+                      pathOptions={{
+                        color: '#1e293b',
+                        fillColor: poly.color,
+                        fillOpacity: 0.5,
+                        weight: 2
+                      }}
+                    >
+                      <Popup><div className="font-semibold">{poly.name}</div></Popup>
+                    </Polygon>
+                  ))}
+
+                  {/* Affichage des Marqueurs (Points) */}
+                  {selectedProject.markers.map((marker, index) => (
+                    <CircleMarker
+                      key={index}
+                      center={marker.position}
+                      radius={marker.radius || 8}
+                      pathOptions={{
+                        color: '#ffffff',
+                        fillColor: getMarkerColor(marker.type),
+                        fillOpacity: 1,
+                        weight: 2,
+                      }}
+                    >
+                      <Popup>
+                        <div className="font-semibold">{marker.popup}</div>
+                      </Popup>
+                    </CircleMarker>
+                  ))}
+                </MapContainer>
+              )}
+            </div>
+
+            {/* Bottom Bar */}
+            <div className="h-16 theme-bg-elevated border-t theme-border px-8 flex items-center justify-between text-xs z-10">
+              <div className="flex items-center gap-x-6">
+                <div className="flex items-center gap-x-3">
+                  <button
+                    onClick={() => {
+                      const idx = projects.findIndex(p => p.id === selectedProjectId);
+                      if (idx > 0) setSelectedProjectId(projects[idx - 1].id);
+                    }}
+                    disabled={projects.findIndex(p => p.id === selectedProjectId) === 0}
+                    className="flex items-center justify-center h-9 w-9 hover:theme-bg-base rounded-2xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <div className="font-mono theme-accent text-sm">
+                    {String(projects.findIndex(p => p.id === selectedProjectId) + 1).padStart(2, '0')} / {String(projects.length).padStart(2, '0')}
+                  </div>
+                  <button
+                    onClick={() => {
+                      const idx = projects.findIndex(p => p.id === selectedProjectId);
+                      if (idx < projects.length - 1) setSelectedProjectId(projects[idx + 1].id);
+                    }}
+                    disabled={projects.findIndex(p => p.id === selectedProjectId) === projects.length - 1}
+                    className="flex items-center justify-center h-9 w-9 hover:theme-bg-base rounded-2xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className={`h-8 w-px ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
+                <div className="theme-text-muted flex items-center gap-x-2">
+                  <Users className="h-4 w-4" />
+                  <span>Auteur : <span className="theme-text font-medium">{selectedProject.authors}</span></span>
+                </div>
+              </div>
+              <div className="flex items-center gap-x-3 theme-text-muted">
+                <button
+                  onClick={() => alert(`Export de "${selectedProject.title}" (démo)`)}
+                  className="flex items-center gap-x-2 px-4 py-2 hover:theme-bg-base hover:theme-text transition-colors rounded-2xl border theme-border"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="text-xs tracking-wider font-semibold">EXPORT</span>
+                </button>
+                {editMode && (
+                  <button
+                    onClick={() => handleEdit(selectedProject)}
+                    className="flex items-center gap-x-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white transition-colors rounded-2xl shadow-lg shadow-emerald-500/20"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    <span className="text-xs tracking-wider font-semibold">ÉDITER</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        ) : showGallery && galleryDetailId !== null ? (
+          /* ===== GALLERY DETAIL VIEW ===== */
+          <GalleryDetail
+            project={projects.find(p => p.id === galleryDetailId)!}
+            isDark={isDark}
+            editMode={editMode}
+            onBack={() => setGalleryDetailId(null)}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            getMarkerColor={getMarkerColor}
+          />
+        ) : showGallery ? (
+          /* ===== GALLERY GRID ===== */
+          <div className="flex-1 overflow-auto theme-bg-base">
+            <div className="max-w-7xl mx-auto p-10">
+              <div className="mb-10 flex items-end justify-between flex-wrap gap-4">
+                <div>
+                  <h1 className="text-5xl font-semibold theme-text tracking-tight">Mes Réalisations Cartographiques</h1>
+                  <p className="text-lg theme-text-muted mt-3 max-w-2xl">
+                    Une sélection de visualisations géospatiales produites dans le cadre de projets MEAL, SIG et d'études territoriales.
+                  </p>
+                </div>
+                {editMode && (
+                  <button
+                    onClick={handleCreate}
+                    className="flex items-center gap-x-2 bg-emerald-500 hover:bg-emerald-400 text-white px-6 py-3 rounded-2xl text-sm font-semibold shadow-lg shadow-emerald-500/30 transition-all"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nouvelle carte
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                {projects.map((project) => (
+                  <div
+                    key={project.id}
+                    onClick={() => setGalleryDetailId(project.id)}
+                    className="group theme-bg-elevated rounded-3xl overflow-hidden border theme-border hover:border-emerald-600 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-500/10"
+                  >
+                    <div className="h-52 relative theme-bg-base overflow-hidden">
+                      {project.image ? (
+                        <img src={project.image} alt={project.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      ) : (
+                        <div className={`absolute inset-0 ${isDark ? 'bg-[radial-gradient(#334155_1px,transparent_1px)] bg-[length:6px_6px]' : 'bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] bg-[length:6px_6px]'} opacity-60`}></div>
+                      )}
+                      {!project.image && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div
+                            className="inline-flex h-20 w-20 items-center justify-center rounded-3xl"
+                            style={{ backgroundColor: project.color + '22', color: project.color }}
+                          >
+                            <MapPin className="h-10 w-10" />
+                          </div>
+                        </div>
+                      )}
+                      <div
+                        className="absolute top-4 left-4 px-3 py-1 text-[10px] uppercase tracking-wider font-semibold rounded-2xl text-white"
+                        style={{ backgroundColor: project.color }}
+                      >
+                        {project.theme.split(" ")[0]}
+                      </div>
+                      <div className="absolute bottom-4 right-4 px-4 py-1.5 text-[10px] bg-black/70 text-white/90 rounded-2xl flex items-center gap-x-2 backdrop-blur">
+                        <Maximize2 className="h-3 w-3" />
+                        DÉTAILS
+                      </div>
+                      {editMode && (
+                        <div className="absolute top-4 right-4 flex gap-x-1.5">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleEdit(project); }}
+                            className="h-9 w-9 flex items-center justify-center rounded-2xl bg-slate-900/90 backdrop-blur hover:bg-white text-white hover:text-slate-900 border border-slate-700"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }}
+                            className="h-9 w-9 flex items-center justify-center rounded-2xl bg-slate-900/90 backdrop-blur hover:bg-red-500 text-slate-300 hover:text-white border border-slate-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-6">
+                      <div className="text-xs theme-text-muted mb-2 flex items-center gap-x-2">
+                        <Globe className="h-3 w-3" />
+                        {project.country} • {project.year}
+                      </div>
+                      <h3 className="theme-text text-lg font-semibold leading-tight mb-3 group-hover:theme-accent transition-colors">
+                        {project.title}
+                      </h3>
+                      <p className="theme-text-muted text-sm line-clamp-2 leading-relaxed">
+                        {project.description || (project.longDesc || '').substring(0, 120) + '...'}
+                      </p>
+                      {project.study && (
+                        <div className="mt-5 pt-4 border-t theme-border">
+                          <div className="text-[10px] uppercase tracking-widest theme-text-muted mb-1">Étude</div>
+                          <div className="text-xs theme-text-secondary line-clamp-1">{project.study}</div>
+                        </div>
+                      )}
+                      <div className="mt-5 flex items-center justify-between">
+                        <div className="text-[10px] theme-text-muted uppercase tracking-widest">
+                          {project.authors}
+                        </div>
+                        <div className="text-xs theme-accent font-semibold flex items-center gap-x-1.5">
+                          Voir détails
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {projects.length === 0 && (
+                <div className="mt-20 border border-dashed theme-border rounded-3xl p-16 text-center">
+                  <div className="mx-auto w-16 h-16 theme-bg-elevated rounded-3xl flex items-center justify-center mb-6">
+                    <MapPin className="theme-text-muted h-8 w-8" />
+                  </div>
+                  <div className="theme-text text-2xl font-semibold">Aucune carte pour l'instant</div>
+                  <div className="theme-text-muted mt-3 max-w-md mx-auto">Commencez à créer votre première carte.</div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* ===== RIGHT PANEL (visualiseur only) ===== */}
+      {!showGallery && selectedProject && (
+        <div className="w-[380px] border-l theme-border theme-bg-base flex flex-col overflow-hidden">
+          <div className="p-7 border-b theme-border">
+            <div className="flex justify-between items-center">
+              <div className="uppercase tracking-[1.5px] text-[11px] theme-accent font-semibold">Fiche projet</div>
+              <div className="text-xs px-3 py-1 theme-bg-elevated rounded-2xl theme-text-muted border theme-border">
+                {selectedProject.year}
+              </div>
+            </div>
+            <h3 className="theme-text text-2xl font-semibold tracking-tight mt-3 leading-tight">
+              {selectedProject.title}
+            </h3>
+            <div className="theme-accent text-sm mt-1.5">{selectedProject.country}</div>
+          </div>
+
+          <div className="px-7 flex-1 overflow-auto custom-scroll">
+            <div className="theme-bg-elevated rounded-3xl p-5 text-sm leading-relaxed border theme-border mt-7">
+              {selectedProject.longDesc || "Aucune description détaillée."}
+            </div>
+
+            <div className="mt-7 space-y-3">
+              {selectedProject.zone && (
+                <div className="flex gap-x-3 text-sm">
+                  <Globe className="h-4 w-4 theme-text-muted mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest theme-text-muted">Zone</div>
+                    <div className="theme-text">{selectedProject.zone}</div>
+                  </div>
+                </div>
+              )}
+              {selectedProject.study && (
+                <div className="flex gap-x-3 text-sm">
+                  <FileText className="h-4 w-4 theme-text-muted mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest theme-text-muted">Étude</div>
+                    <div className="theme-text">{selectedProject.study}</div>
+                  </div>
+                </div>
+              )}
+              <div className="flex gap-x-3 text-sm">
+                <Users className="h-4 w-4 theme-text-muted mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest theme-text-muted">Auteur(s)</div>
+                  <div className="theme-text">{selectedProject.authors}</div>
+                </div>
+              </div>
+              <div className="flex gap-x-3 text-sm">
+                <Calendar className="h-4 w-4 theme-text-muted mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest theme-text-muted">Date</div>
+                  <div className="theme-text">{selectedProject.date}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8">
+              <div className="text-xs uppercase font-semibold theme-text-muted mb-4 tracking-wider">Indicateurs clés</div>
+              <div className="space-y-3">
+                {selectedProject.metrics.map((metric, index) => (
+                  <div key={index} className="theme-bg-elevated border theme-border rounded-2xl p-5">
+                    <div className="text-xs theme-text-muted">{metric.label}</div>
+                    <div className="flex items-baseline gap-x-3 mt-2">
+                      <div className="text-4xl font-semibold theme-text tracking-tight">{metric.value}</div>
+                      {metric.change && (
+                        <div className="text-xs theme-accent font-semibold">{metric.change}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8 pb-10">
+              <div className="text-xs uppercase font-semibold theme-text-muted mb-4 tracking-wider">Conclusions</div>
+              <div className="space-y-4">
+                {selectedProject.keyFindings.map((finding, index) => (
+                  <div key={index} className="flex gap-4">
+                    <div className="theme-accent text-lg font-light mt-0.5 w-7 flex-shrink-0 font-mono">0{index + 1}</div>
+                    <div className="text-sm theme-text-secondary leading-snug pt-1.5">
+                      {finding}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto p-4 space-y-3 custom-scroll">
-            <div className="flex items-center justify-between px-2 mb-2">
-              <div className="uppercase text-[10px] tracking-[2px] theme-text-muted font-semibold">
-                Mes cartes ({filteredProjects.length})
-              </div>
-              {editMode && (
-                <button
-                  onClick={handleCreate}
-                  className="h-7 w-7 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              )}
+          {editMode && (
+            <div className="px-7 pb-7 pt-5 border-t theme-border mt-auto theme-bg-base">
+              <button
+                onClick={() => handleEdit(selectedProject)}
+                className="w-full py-3.5 bg-white hover:bg-amber-100 text-slate-900 rounded-2xl flex items-center justify-center gap-x-2 text-sm font-semibold transition-all active:scale-[0.985] shadow-lg"
+              >
+                <Edit3 className="h-4 w-4" />
+                MODIFIER CETTE CARTE
+              </button>
             </div>
-
-            {filteredProjects.map((project) => (
-              <div
-                key={project.id}
-                className={`group p-5 rounded-2xl cursor-pointer transition-all border ${selectedProject?.id === project.id && !showGallery
-                  ? 'theme-bg-elevated border-emerald-600 shadow-inner'
-                  : 'theme-bg-base theme-border hover:theme-border-hover hover:theme-bg-elevated/50'
-                  }`}
-                onClick={() => {
-                  setSelectedProjectId(project.id);
-                  setShowGallery(false);
-                }}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium theme-text text-sm leading-tight mb-1.5 group-hover:theme-accent transition-colors truncate">
-                      {project.title}
-                    </div>
-                    <div className="text-xs theme-text-muted flex items-center gap-x-2">
-                      <Globe className="h-3 w-3" />
-                      <span>{project.country}</span>
-                      <span className="opacity-50">•</span>
-                      <span>{project.year}</span>
-                    </div>
-                  </div>
-                  <div
-                    className="h-6 w-6 flex-shrink-0 rounded-xl ml-3"
-                    style={{ backgroundColor: project.color }}
-                  />
-                </div>
-
-                <div className="mt-3 text-[11px] theme-text-muted line-clamp-2 leading-relaxed">
-                  {project.description || 'Aucune description'}
-                </div>
-
-                {editMode && (
-                  <div className="mt-4 flex items-center justify-end gap-x-1">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleEdit(project); }}
-                      className="h-7 w-7 flex items-center justify-center rounded-xl hover:theme-bg-base theme-text-muted hover:theme-text"
-                      title="Modifier"
-                    >
-                      <Edit3 className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }}
-                      className="h-7 w-7 flex items-center justify-center rounded-xl hover:bg-red-500/20 theme-text-muted hover:text-red-400"
-                      title="Supprimer"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {filteredProjects.length === 0 && (
-              <div className="p-8 text-center theme-text-muted text-sm border border-dashed theme-border rounded-2xl theme-bg-elevated/50">
-                Aucune carte trouvée.
-              </div>
-            )}
-          </div>
-
-          {/* ===== CONTACT SECTION ===== */}
-          <div className="p-4 border-t theme-border theme-bg-elevated/30">
-            <div className="uppercase text-[10px] tracking-[2px] theme-text-muted font-semibold mb-3 px-1">Me contacter</div>
-            <div className="space-y-2">
-              <a
-                href={`mailto:${CONTACT.email}`}
-                className="flex items-center gap-x-3 p-2.5 rounded-2xl hover:theme-bg-elevated theme-text-secondary hover:theme-text transition-colors group"
-                title={CONTACT.email}
-              >
-                <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors flex-shrink-0">
-                  <Mail className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] theme-text-muted uppercase tracking-wider">Email</div>
-                  <div className="text-xs theme-text truncate">{CONTACT.email}</div>
-                </div>
-              </a>
-              <a
-                href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}
-                className="flex items-center gap-x-3 p-2.5 rounded-2xl hover:theme-bg-elevated theme-text-secondary hover:theme-text transition-colors group"
-                title={CONTACT.phone}
-              >
-                <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-sky-500/10 text-sky-400 group-hover:bg-sky-500 group-hover:text-white transition-colors flex-shrink-0">
-                  <Phone className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] theme-text-muted uppercase tracking-wider">Téléphone</div>
-                  <div className="text-xs theme-text truncate">{CONTACT.phone}</div>
-                </div>
-              </a>
-              <a
-                href={CONTACT.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-x-3 p-2.5 rounded-2xl hover:theme-bg-elevated theme-text-secondary hover:theme-text transition-colors group"
-                title="LinkedIn"
-              >
-                <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors flex-shrink-0">
-                  <LinkedinIcon className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] theme-text-muted uppercase tracking-wider">LinkedIn</div>
-                  <div className="text-xs theme-text truncate">C. GOUESSE</div>
-                </div>
-              </a>
-              <a
-                href={CONTACT.github}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-x-3 p-2.5 rounded-2xl hover:theme-bg-elevated theme-text-secondary hover:theme-text transition-colors group"
-                title="GitHub"
-              >
-                <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-slate-500/10 theme-text-muted group-hover:bg-slate-500 group-hover:text-white transition-colors flex-shrink-0">
-                  <GithubIcon className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] theme-text-muted uppercase tracking-wider">GitHub</div>
-                  <div className="text-xs theme-text truncate">@christgoue</div>
-                </div>
-              </a>
-            </div>
-          </div>
+          )}
         </div>
-
-        {/* ===== MAIN AREA ===== */}
-        <div className="flex-1 flex flex-col relative theme-bg-base">
-          {!showGallery && selectedProject ? (
-            /* ===== VISUALIZER VIEW (unchanged) ===== */
-            <>
-              {/* Map Info Card */}
-              <div className="absolute top-5 left-5 z-20 theme-bg-elevated/95 backdrop-blur-lg border theme-border rounded-3xl px-6 py-4 shadow-2xl flex items-center gap-x-5 max-w-[calc(100%-280px)]">
-                <div>
-                  <div className="flex items-center gap-x-3">
-                    <div
-                      className="h-10 w-10 rounded-2xl flex items-center justify-center"
-                      style={{ backgroundColor: selectedProject.color + '33', color: selectedProject.color }}
-                    >
-                      <MapPin className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-lg leading-none theme-text">{selectedProject.title}</div>
-                      <div className="text-xs theme-text-muted mt-1.5">
-                        {selectedProject.country}
-                        {selectedProject.zone && ` — ${selectedProject.zone}`}
-                        {' • '}{selectedProject.year}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={`h-10 w-px ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
-                <div className="text-xs leading-snug max-w-[240px] theme-text-secondary">
-                  {selectedProject.description}
-                </div>
-                {editMode && (
-                  <>
-                    <div className={`h-10 w-px ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
-                    <button
-                      onClick={() => handleEdit(selectedProject)}
-                      className="flex items-center gap-x-2 px-4 py-2 text-xs hover:opacity-80 theme-text rounded-2xl border theme-border transition-all"
-                    >
-                      <Edit3 className="h-3.5 w-3.5" />
-                      MODIFIER
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Layer Controls */}
-              <div className="absolute top-5 right-5 z-20 theme-bg-elevated/95 backdrop-blur-lg border theme-border rounded-3xl p-2 shadow-2xl w-56">
-                <div className="text-[10px] font-mono tracking-[2px] theme-text-muted px-4 pt-2 pb-3 uppercase">Couches</div>
-                <div className="space-y-1 pb-2">
-                  <button
-                    onClick={() => toggleLayer('markers')}
-                    className={`w-full flex items-center gap-x-3 px-4 py-2.5 hover:theme-bg-base rounded-2xl text-sm transition-all ${activeLayers.includes('markers') ? 'theme-bg-base theme-text' : 'theme-text-muted'}`}
-                  >
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedProject.color }}></div>
-                    <span>Points de données</span>
-                    <span className="ml-auto text-xs theme-text-muted">{selectedProject.markers.length}</span>
-                  </button>
-                  <button
-                    onClick={() => toggleLayer('polygons')}
-                    className={`w-full flex items-center gap-x-3 px-4 py-2.5 hover:theme-bg-base rounded-2xl text-sm transition-all ${activeLayers.includes('polygons') ? 'theme-bg-base theme-text' : 'theme-text-muted'}`}
-                  >
-                    <div className="w-3 h-3 bg-emerald-400/70 rounded"></div>
-                    <span>Zones</span>
-                    <span className="ml-auto text-xs theme-text-muted">{selectedProject.polygons.length}</span>
-                  </button>
-                  <button
-                    onClick={() => toggleLayer('osm')}
-                    className={`w-full flex items-center gap-x-3 px-4 py-2.5 hover:theme-bg-base rounded-2xl text-sm transition-all ${activeLayers.includes('osm') ? 'theme-bg-base theme-text' : 'theme-text-muted'}`}
-                  >
-                    <div className="text-amber-400 text-sm">🛰️</div>
-                    <span>Fond cartographique</span>
-                  </button>
-                </div>
-                <div className={`border-t theme-border pt-3 pb-2 px-4`}>
-                  <div className="text-[10px] font-mono tracking-[2px] theme-text-muted mb-3 uppercase">Légende</div>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center gap-x-2.5 theme-text-secondary">
-                      <div className="w-3 h-3 rounded-full bg-green-500 border-2 theme-border"></div>
-                      <span>Positif / Fonctionnel</span>
-                    </div>
-                    <div className="flex items-center gap-x-2.5 theme-text-secondary">
-                      <div className="w-3 h-3 rounded-full bg-yellow-500 border-2 theme-border"></div>
-                      <span>Neutre / À surveiller</span>
-                    </div>
-                    <div className="flex items-center gap-x-2.5 theme-text-secondary">
-                      <div className="w-3 h-3 rounded-full bg-red-500 border-2 theme-border"></div>
-                      <span>Critique / À traiter</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* THE MAP */}
-              <div className="flex-1 relative">
-                {selectedProject.image ? (
-                  <div className="h-full w-full flex items-center justify-center theme-bg-base p-8 relative">
-                    <img
-                      src={selectedProject.image}
-                      alt={selectedProject.title}
-                      className="max-h-full max-w-full object-contain rounded-2xl shadow-2xl"
-                    />
-                  </div>
-                ) : (
-                  <MapContainer
-                    center={selectedProject.center}
-                    zoom={selectedProject.zoom}
-                    className="h-full w-full"
-                    zoomControl={false}
-                    attributionControl={false}
-                  >
-                    <MapController project={selectedProject} />
-                    {activeLayers.includes('osm') ? (
-                      <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; OpenStreetMap'
-                      />
-                    ) : (
-                      <TileLayer
-                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
-                        attribution='Tiles &copy; Esri'
-                      />
-                    )}
-                    {activeLayers.includes('polygons') && selectedProject.polygons.map((poly, index) => (
-                      <Polygon
-                        key={index}
-                        positions={poly.positions}
-                        pathOptions={{
-                          color: isDark ? '#111827' : '#1e293b',
-                          fillColor: poly.color,
-                          fillOpacity: 0.65,
-                          weight: 2
-                        }}
-                      >
-                        <Popup><div className="font-semibold">{poly.name}</div></Popup>
-                      </Polygon>
-                    ))}
-                    {activeLayers.includes('markers') && selectedProject.markers.map((marker, index) => (
-                      <CircleMarker
-                        key={index}
-                        center={marker.position}
-                        radius={marker.radius || 9}
-                        pathOptions={{
-                          color: isDark ? '#111827' : '#1e293b',
-                          fillColor: getMarkerColor(marker.type),
-                          fillOpacity: 0.9,
-                          weight: 2.5,
-                        }}
-                      >
-                        <Popup>
-                          <div className="max-w-[240px]">
-                            <div className="font-semibold mb-1 text-base">{marker.popup}</div>
-                            <div className="text-xs text-emerald-600 font-semibold">POINT DE DONNÉES</div>
-                            <div className="mt-2 text-xs text-slate-600">
-                              {selectedProject.title} — {selectedProject.year}
-                            </div>
-                          </div>
-                        </Popup>
-                      </CircleMarker>
-                    ))}
-                  </MapContainer>
-                )}
-              </div>
-
-              {/* Bottom Bar */}
-              <div className="h-16 theme-bg-elevated border-t theme-border px-8 flex items-center justify-between text-xs z-10">
-                <div className="flex items-center gap-x-6">
-                  <div className="flex items-center gap-x-3">
-                    <button
-                      onClick={() => {
-                        const idx = projects.findIndex(p => p.id === selectedProjectId);
-                        if (idx > 0) setSelectedProjectId(projects[idx - 1].id);
-                      }}
-                      disabled={projects.findIndex(p => p.id === selectedProjectId) === 0}
-                      className="flex items-center justify-center h-9 w-9 hover:theme-bg-base rounded-2xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <div className="font-mono theme-accent text-sm">
-                      {String(projects.findIndex(p => p.id === selectedProjectId) + 1).padStart(2, '0')} / {String(projects.length).padStart(2, '0')}
-                    </div>
-                    <button
-                      onClick={() => {
-                        const idx = projects.findIndex(p => p.id === selectedProjectId);
-                        if (idx < projects.length - 1) setSelectedProjectId(projects[idx + 1].id);
-                      }}
-                      disabled={projects.findIndex(p => p.id === selectedProjectId) === projects.length - 1}
-                      className="flex items-center justify-center h-9 w-9 hover:theme-bg-base rounded-2xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className={`h-8 w-px ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
-                  <div className="theme-text-muted flex items-center gap-x-2">
-                    <Users className="h-4 w-4" />
-                    <span>Auteur : <span className="theme-text font-medium">{selectedProject.authors}</span></span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-x-3 theme-text-muted">
-                  <button
-                    onClick={() => alert(`Export de "${selectedProject.title}" (démo)`)}
-                    className="flex items-center gap-x-2 px-4 py-2 hover:theme-bg-base hover:theme-text transition-colors rounded-2xl border theme-border"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span className="text-xs tracking-wider font-semibold">EXPORT</span>
-                  </button>
-                  {editMode && (
-                    <button
-                      onClick={() => handleEdit(selectedProject)}
-                      className="flex items-center gap-x-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white transition-colors rounded-2xl shadow-lg shadow-emerald-500/20"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                      <span className="text-xs tracking-wider font-semibold">ÉDITER</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </>
-          ) : showGallery && galleryDetailId !== null ? (
-            /* ===== GALLERY DETAIL VIEW ===== */
-            <GalleryDetail
-              project={projects.find(p => p.id === galleryDetailId)!}
-              isDark={isDark}
-              editMode={editMode}
-              onBack={() => setGalleryDetailId(null)}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              getMarkerColor={getMarkerColor}
-            />
-          ) : showGallery ? (
-            /* ===== GALLERY GRID ===== */
-            <div className="flex-1 overflow-auto theme-bg-base">
-              <div className="max-w-7xl mx-auto p-10">
-                <div className="mb-10 flex items-end justify-between flex-wrap gap-4">
-                  <div>
-                    <h1 className="text-5xl font-semibold theme-text tracking-tight">Mes Réalisations Cartographiques</h1>
-                    <p className="text-lg theme-text-muted mt-3 max-w-2xl">
-                      Une sélection de visualisations géospatiales produites dans le cadre de projets MEAL, SIG et d'études territoriales.
-                    </p>
-                  </div>
-                  {editMode && (
-                    <button
-                      onClick={handleCreate}
-                      className="flex items-center gap-x-2 bg-emerald-500 hover:bg-emerald-400 text-white px-6 py-3 rounded-2xl text-sm font-semibold shadow-lg shadow-emerald-500/30 transition-all"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Nouvelle carte
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-                  {projects.map((project) => (
-                    <div
-                      key={project.id}
-                      onClick={() => setGalleryDetailId(project.id)}
-                      className="group theme-bg-elevated rounded-3xl overflow-hidden border theme-border hover:border-emerald-600 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-500/10"
-                    >
-                      <div className="h-52 relative theme-bg-base overflow-hidden">
-                        {project.image ? (
-                          <img src={project.image} alt={project.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        ) : (
-                          <div className={`absolute inset-0 ${isDark ? 'bg-[radial-gradient(#334155_1px,transparent_1px)] bg-[length:6px_6px]' : 'bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] bg-[length:6px_6px]'} opacity-60`}></div>
-                        )}
-                        {!project.image && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div
-                              className="inline-flex h-20 w-20 items-center justify-center rounded-3xl"
-                              style={{ backgroundColor: project.color + '22', color: project.color }}
-                            >
-                              <MapPin className="h-10 w-10" />
-                            </div>
-                          </div>
-                        )}
-                        <div
-                          className="absolute top-4 left-4 px-3 py-1 text-[10px] uppercase tracking-wider font-semibold rounded-2xl text-white"
-                          style={{ backgroundColor: project.color }}
-                        >
-                          {project.theme.split(" ")[0]}
-                        </div>
-                        <div className="absolute bottom-4 right-4 px-4 py-1.5 text-[10px] bg-black/70 text-white/90 rounded-2xl flex items-center gap-x-2 backdrop-blur">
-                          <Maximize2 className="h-3 w-3" />
-                          DÉTAILS
-                        </div>
-                        {editMode && (
-                          <div className="absolute top-4 right-4 flex gap-x-1.5">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleEdit(project); }}
-                              className="h-9 w-9 flex items-center justify-center rounded-2xl bg-slate-900/90 backdrop-blur hover:bg-white text-white hover:text-slate-900 border border-slate-700"
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }}
-                              className="h-9 w-9 flex items-center justify-center rounded-2xl bg-slate-900/90 backdrop-blur hover:bg-red-500 text-slate-300 hover:text-white border border-slate-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="p-6">
-                        <div className="text-xs theme-text-muted mb-2 flex items-center gap-x-2">
-                          <Globe className="h-3 w-3" />
-                          {project.country} • {project.year}
-                        </div>
-                        <h3 className="theme-text text-lg font-semibold leading-tight mb-3 group-hover:theme-accent transition-colors">
-                          {project.title}
-                        </h3>
-                        <p className="theme-text-muted text-sm line-clamp-2 leading-relaxed">
-                          {project.description || (project.longDesc || '').substring(0, 120) + '...'}
-                        </p>
-                        {project.study && (
-                          <div className="mt-5 pt-4 border-t theme-border">
-                            <div className="text-[10px] uppercase tracking-widest theme-text-muted mb-1">Étude</div>
-                            <div className="text-xs theme-text-secondary line-clamp-1">{project.study}</div>
-                          </div>
-                        )}
-                        <div className="mt-5 flex items-center justify-between">
-                          <div className="text-[10px] theme-text-muted uppercase tracking-widest">
-                            {project.authors}
-                          </div>
-                          <div className="text-xs theme-accent font-semibold flex items-center gap-x-1.5">
-                            Voir détails
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {projects.length === 0 && (
-                  <div className="mt-20 border border-dashed theme-border rounded-3xl p-16 text-center">
-                    <div className="mx-auto w-16 h-16 theme-bg-elevated rounded-3xl flex items-center justify-center mb-6">
-                      <MapPin className="theme-text-muted h-8 w-8" />
-                    </div>
-                    <div className="theme-text text-2xl font-semibold">Aucune carte pour l'instant</div>
-                    <div className="theme-text-muted mt-3 max-w-md mx-auto">Commencez à créer votre première carte.</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        {/* ===== RIGHT PANEL (visualiseur only) ===== */}
-        {!showGallery && selectedProject && (
-          <div className="w-[380px] border-l theme-border theme-bg-base flex flex-col overflow-hidden">
-            <div className="p-7 border-b theme-border">
-              <div className="flex justify-between items-center">
-                <div className="uppercase tracking-[1.5px] text-[11px] theme-accent font-semibold">Fiche projet</div>
-                <div className="text-xs px-3 py-1 theme-bg-elevated rounded-2xl theme-text-muted border theme-border">
-                  {selectedProject.year}
-                </div>
-              </div>
-              <h3 className="theme-text text-2xl font-semibold tracking-tight mt-3 leading-tight">
-                {selectedProject.title}
-              </h3>
-              <div className="theme-accent text-sm mt-1.5">{selectedProject.country}</div>
-            </div>
-
-            <div className="px-7 flex-1 overflow-auto custom-scroll">
-              <div className="theme-bg-elevated rounded-3xl p-5 text-sm leading-relaxed border theme-border mt-7">
-                {selectedProject.longDesc || "Aucune description détaillée."}
-              </div>
-
-              <div className="mt-7 space-y-3">
-                {selectedProject.zone && (
-                  <div className="flex gap-x-3 text-sm">
-                    <Globe className="h-4 w-4 theme-text-muted mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="text-[10px] uppercase tracking-widest theme-text-muted">Zone</div>
-                      <div className="theme-text">{selectedProject.zone}</div>
-                    </div>
-                  </div>
-                )}
-                {selectedProject.study && (
-                  <div className="flex gap-x-3 text-sm">
-                    <FileText className="h-4 w-4 theme-text-muted mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="text-[10px] uppercase tracking-widest theme-text-muted">Étude</div>
-                      <div className="theme-text">{selectedProject.study}</div>
-                    </div>
-                  </div>
-                )}
-                <div className="flex gap-x-3 text-sm">
-                  <Users className="h-4 w-4 theme-text-muted mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="text-[10px] uppercase tracking-widest theme-text-muted">Auteur(s)</div>
-                    <div className="theme-text">{selectedProject.authors}</div>
-                  </div>
-                </div>
-                <div className="flex gap-x-3 text-sm">
-                  <Calendar className="h-4 w-4 theme-text-muted mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="text-[10px] uppercase tracking-widest theme-text-muted">Date</div>
-                    <div className="theme-text">{selectedProject.date}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8">
-                <div className="text-xs uppercase font-semibold theme-text-muted mb-4 tracking-wider">Indicateurs clés</div>
-                <div className="space-y-3">
-                  {selectedProject.metrics.map((metric, index) => (
-                    <div key={index} className="theme-bg-elevated border theme-border rounded-2xl p-5">
-                      <div className="text-xs theme-text-muted">{metric.label}</div>
-                      <div className="flex items-baseline gap-x-3 mt-2">
-                        <div className="text-4xl font-semibold theme-text tracking-tight">{metric.value}</div>
-                        {metric.change && (
-                          <div className="text-xs theme-accent font-semibold">{metric.change}</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-8 pb-10">
-                <div className="text-xs uppercase font-semibold theme-text-muted mb-4 tracking-wider">Conclusions</div>
-                <div className="space-y-4">
-                  {selectedProject.keyFindings.map((finding, index) => (
-                    <div key={index} className="flex gap-4">
-                      <div className="theme-accent text-lg font-light mt-0.5 w-7 flex-shrink-0 font-mono">0{index + 1}</div>
-                      <div className="text-sm theme-text-secondary leading-snug pt-1.5">
-                        {finding}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {editMode && (
-              <div className="px-7 pb-7 pt-5 border-t theme-border mt-auto theme-bg-base">
-                <button
-                  onClick={() => handleEdit(selectedProject)}
-                  className="w-full py-3.5 bg-white hover:bg-amber-100 text-slate-900 rounded-2xl flex items-center justify-center gap-x-2 text-sm font-semibold transition-all active:scale-[0.985] shadow-lg"
-                >
-                  <Edit3 className="h-4 w-4" />
-                  MODIFIER CETTE CARTE
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ===== HIDDEN BUTTON TO ACTIVATE EDIT MODE (bottom right corner) ===== */}
-      <button
-        onClick={handleSecretTap}
-        title={editMode ? "Désactiver le mode édition" : "Mode édition (protégé)"}
-        className={`fixed bottom-3 right-3 z-50 h-9 w-9 flex items-center justify-center rounded-full transition-all opacity-30 hover:opacity-100 ${editMode
-          ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/50'
-          : 'theme-bg-elevated theme-text-muted border theme-border'
-          }`}
-      >
-        {editMode ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-      </button>
-
-      {/* Editor Modal */}
-      {editing && (
-        <EditorModal
-          project={editing}
-          onSave={handleSave}
-          onClose={() => setEditing(null)}
-        />
       )}
     </div>
-  );
+
+    {/* ===== HIDDEN BUTTON TO ACTIVATE EDIT MODE (bottom right corner) ===== */}
+    <button
+      onClick={handleSecretTap}
+      title={editMode ? "Désactiver le mode édition" : "Mode édition (protégé)"}
+      className={`fixed bottom-3 right-3 z-50 h-9 w-9 flex items-center justify-center rounded-full transition-all opacity-30 hover:opacity-100 ${editMode
+        ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/50'
+        : 'theme-bg-elevated theme-text-muted border theme-border'
+        }`}
+    >
+      {editMode ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+    </button>
+
+    {/* Editor Modal */}
+    {editing && (
+      <EditorModal
+        project={editing}
+        onSave={handleSave}
+        onClose={() => setEditing(null)}
+      />
+    )}
+  </div>
+);
 }
 
 // ========== GALLERY DETAIL COMPONENT ==========
