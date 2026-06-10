@@ -11,13 +11,13 @@ export const MY_PROJECTS: Project[] = [
     theme: "Santé Publique",
     color: "#ef4444",
     // IMPORTANT : Le chemin commence par /images/
-    image: "/images/Aire sanitaire du CNTS de Korhog.png",
+    image: "public/images/Aire sanitaire du CNTS de Korhog.png",
     description: "Analyse spatiale de la couverture sanitaire...",
     longDesc: "Description détaillée de votre travail ici...",
-    study: "Étude d'impact sanitaire",
-    authors: "Christ Goue",
+    study: "Rapport des activités du CNTS de Korhogo, 2024",
+    authors: "C GOUESSE & CNTS Korhogo",
     center: [9.45, -5.63], // Coordonnées de Korhogo
-    zoom: 12,
+    zoom: 10
     metrics: [
       { label: "Population couverte", value: "250k", change: "" }
     ],
@@ -29,14 +29,14 @@ export const MY_PROJECTS: Project[] = [
 
   {
     id: 1,
-    title: "Accès à l'Eau Potable",
-    country: "Sénégal",
-    zone: "Dakar, Thiès, Fatick",
-    year: 2024,
-    date: "2024-06-15",
+    title: "Carte d'étude dans le District des Savanes",
+    country: "Côte d'Ivoire",
+    zone: " Korhogo",
+    year: 2018
+    date: "2018-06-15",
     theme: "Eau, Hygiène  & Assainissement",
     color: "#0ea5e9",
-    image: "",
+    image: "public/images/Carte d'étude 001.png",
     description: "Taux d'accès à l'eau potable par département et localisation des points d'eau.",
     longDesc: "Cette carte présente les résultats d'une évaluation MEAL complète réalisée en partenariat avec le Ministère de l'Eau et de l'Assainissement. Les cercles bleus représentent les forages fonctionnels tandis que les cercles rouges indiquent les infrastructures nécessitant une réhabilitation urgente.",
     study: "Évaluation du programme national d'accès à l'eau potable en milieu rural",
@@ -57,10 +57,6 @@ export const MY_PROJECTS: Project[] = [
     markers: [
       { position: [14.75, -17.35], type: 'good', popup: 'Forage de Thiès - Fonctionnel' },
       { position: [14.92, -15.32], type: 'good', popup: 'Puits village de Mbour' },
-      { position: [13.85, -16.25], type: 'bad', popup: 'Forage de Ziguinchor - En panne' },
-      { position: [15.35, -13.15], type: 'good', popup: 'Station de pompage de Louga' },
-      { position: [12.95, -15.45], type: 'neutral', popup: "Point d'eau communautaire de Kolda" },
-      { position: [14.25, -14.85], type: 'good', popup: 'Forage solaire de Fatick' },
     ],
     polygons: [],
   },

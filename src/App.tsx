@@ -1,4 +1,5 @@
 import { MY_PROJECTS } from './data/projects';
+import { Project } from './types';
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Polygon, Popup, useMapEvents } from 'react-leaflet';
 import {
@@ -729,35 +730,30 @@ function EditorModal({
 
 // ========== MAIN APP ==========
 export default function App() {
-  const [projects, setProjects] = useState<Project[]>(() => {
-    try {
-      const saved = localStorage.getItem('midata-projects');
-      if (saved) return JSON.parse(saved);
-    } catch { }
-    return DEFAULT_PROJECTS;
-  });
+  const [projects, setProjects] = useState<Project[]>(MY_PROJECTS);
+};
 
-  const [selectedProjectId, setSelectedProjectId] = useState<number>(projects[0]?.id || 1);
-  const [activeTheme, setActiveTheme] = useState<string>("Tous");
-  const [activeLayers, setActiveLayers] = useState<string[]>(['markers', 'osm']);
-  const [showGallery, setShowGallery] = useState(false);
-  const [galleryDetailId, setGalleryDetailId] = useState<number | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [editing, setEditing] = useState<Project | null>(null);
+const [selectedProjectId, setSelectedProjectId] = useState<number>(projects[0]?.id || 1);
+const [activeTheme, setActiveTheme] = useState<string>("Tous");
+const [activeLayers, setActiveLayers] = useState<string[]>(['markers', 'osm']);
+const [showGallery, setShowGallery] = useState(false);
+const [galleryDetailId, setGalleryDetailId] = useState<number | null>(null);
+const [searchTerm, setSearchTerm] = useState("");
+const [editing, setEditing] = useState<Project | null>(null);
 
-  // Edit mode (protected by code)
-  const [editMode, setEditMode] = useState<boolean>(() => {
-    try { return localStorage.getItem('midata-edit-mode') === '1'; } catch { return false; }
-  });
+// Edit mode (protected by code)
+const [editMode, setEditMode] = useState<boolean>(() => {
+  try { return localStorage.getItem('midata-edit-mode') === '1'; } catch { return false; }
+});
 
-  // Theme (dark / light)
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    try { return localStorage.getItem('midata-theme') !== 'light'; } catch { return true; }
-  });
+// Theme (dark / light)
+const [isDark, setIsDark] = useState<boolean>(() => {
+  try { return localStorage.getItem('midata-theme') !== 'light'; } catch { return true; }
+});
 
-  //useEffect(() => {
-  try { localStorage.setItem('midata-projects', JSON.stringify(projects)); } catch { }
-}, [projects]);
+//useEffect(() => {
+//ry { localStorage.setItem('midata-projects', JSON.stringify(projects)); } catch { }
+// [projects]);
 
 
 useEffect(() => {
